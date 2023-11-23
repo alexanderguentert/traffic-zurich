@@ -30,8 +30,7 @@ SELECT
     from "{resource}"
 WHERE REPLACE("MessungDatZeit",'T',' ')::DATE = '{date}'
 AND "AnzFahrzeuge" IS NOT NULL
---LIMIT 1000
-;'''
+'''
 
 url_dates='''https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
 SELECT 
