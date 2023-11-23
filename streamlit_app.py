@@ -30,10 +30,9 @@ SELECT
     from "{resource}"
 WHERE REPLACE("MessungDatZeit",'T',' ')::DATE = '{date}'
 AND "AnzFahrzeuge" IS NOT NULL
---LIMIT 1000
-;'''
+'''
 
-url_dates='''https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
+url_dates = '''https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
 SELECT 
     DISTINCT REPLACE("MessungDatZeit",'T',' ')::DATE AS datum
     from "{resource}"
@@ -41,32 +40,35 @@ WHERE "AnzFahrzeuge" IS NOT NULL
 ORDER BY 1 DESC'''
 
 
-
 # functions
 def download_data(url):
     r = requests.get(url)
-    df=pd.read_json(r.text,)
-    if df['success'].unique()==True:
+    df = pd.read_json(r.text,)
+    if df['success'].unique() == True:
         error_status = False
-        return (error_status,df)
+        return (error_status, df)
     else:
         error_status = True
-        return (error_status,df['error'])
+        return (error_status, df['error'])
+
 
 def extract_data(df):
     # extract relevant data
-    df2= df.loc['records','result']
-    df3=pd.DataFrame.from_dict(df2)
+    df2 = df.loc['records', 'result']
+    df3 = pd.DataFrame.from_dict(df2)
     return df3
 
+
 def convert_lat(row):
-    return converter.CHtoWGSlat(row['ekoord_strip'],row['nkoord_strip'])
+    return converter.CHtoWGSlat(row['ekoord_strip'], row['nkoord_strip'])
+
 
 def convert_lon(row):
-    return converter.CHtoWGSlng(row['ekoord_strip'],row['nkoord_strip'])
+    return converter.CHtoWGSlng(row['ekoord_strip'], row['nkoord_strip'])
+
 
 def data_preparation(df):
-    df['Zeit']=df['MessungDatZeit']
+    df['Zeit'] = df['MessungDatZeit']
     df['Uhrzeit'] = pd.to_datetime(df['Zeit']).dt.time.astype(str)
     df['MessungDatZeit'] = pd.to_datetime(df['MessungDatZeit'])
     df['ekoord_strip'] = df['ekoord_strip'].astype(float)
@@ -78,16 +80,18 @@ def data_preparation(df):
     df['lon'] = df.apply(convert_lon, axis=1)
     return df
 
+
 def load_avlailable_dates():
-	# Load available date for datepicker
-	dates = pd.DataFrame()
-	for resource in resources:
-	    error_status, df_dates = download_data(url_dates.format(resource=resources[resource]))
-	    df_dates = extract_data(df_dates)
-	    dates = pd.concat([dates, df_dates])
-	dates['datum'] = pd.to_datetime(dates['datum'])
-	return dates
-	
+    # Load available date for datepicker
+    dates = pd.DataFrame()
+    for resource in resources:
+        error_status, df_dates = download_data(url_dates.format(resource=resources[resource]))
+        df_dates = extract_data(df_dates)
+        dates = pd.concat([dates, df_dates])
+    dates['datum'] = pd.to_datetime(dates['datum'])
+    return dates
+
+
 def update_map(date):
     date_str = date.strftime('%Y-%m-%d')
     year = date_str[0:4]
@@ -95,37 +99,38 @@ def update_map(date):
     error_status, df = download_data(url.format(date=date_str, resource=resources[year]))
     # check if download correct
     if error_status == False:
-	    # no error
-	    miv_data = extract_data(df)
+        # no error
+        miv_data = extract_data(df)
     else:
-	    return px.bar(title='Fehler bei Datenabfrage')
-    
+        return px.bar(title='Fehler bei Datenabfrage')
+
     miv_data = data_preparation(miv_data)
-    
+
     fig = px.scatter_mapbox(miv_data, lat="lat", lon="lon", size="AnzFahrzeuge",
                         animation_frame='Uhrzeit',
-                        hover_data=['AnzFahrzeuge','ZSName','Richtung','Zeit'],
-					    title='Verkehrsaufkommen am {}'.format(date),
-                        color_continuous_scale=px.colors.diverging.Tealrose,#px.colors.sequential.Plasma_r,#px.colors.cyclical.IceFire, 
-                        size_max=30, 
+                        hover_data=['AnzFahrzeuge', 'ZSName', 'Richtung', 'Zeit'],
+                        title='Verkehrsaufkommen am {}'.format(date),
+                        color_continuous_scale=px.colors.diverging.Tealrose, #px.colors.sequential.Plasma_r,#px.colors.cyclical.IceFire,
+                        size_max=30,
                         zoom=11.5
     )
-    fig.update_layout(mapbox_style="carto-positron",height=800, width=plot_width) #"open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor" 
+    fig.update_layout(mapbox_style="carto-positron", height=800, width=plot_width) #"open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
     return fig, miv_data
+
 
 def bar_chart_day(miv_data):
     fig = px.bar(miv_data.groupby(['MessungDatZeit'])['AnzFahrzeuge'].sum(),
-    		labels={
-    		    'MessungDatZeit': 'Stunde',
-    		    'value': 'Summe der Fahrzeuge',
-    		})
-    fig.update_layout(width=plot_width)	
+            labels={
+                'MessungDatZeit': 'Stunde',
+                'value': 'Summe der Fahrzeuge',
+            })
+    fig.update_layout(width=plot_width)
     return fig
+
 
 #preparations
 # coordinate conversion
 converter = wgs84_ch1903.GPSConverter()
-
 
 
 st.set_page_config('Verkehrslage Zürich', layout="wide")
