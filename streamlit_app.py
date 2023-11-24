@@ -78,6 +78,7 @@ def data_preparation(df):
     # convertiere Koordinaten
     df['lat'] = df.apply(convert_lat, axis=1)
     df['lon'] = df.apply(convert_lon, axis=1)
+    df = df.sort_values('MessungDatZeit')
     return df
 
 
