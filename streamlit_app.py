@@ -11,8 +11,9 @@ plot_width = 1200
 
 resources = {
     '2023': '4492d891-a366-49b9-b0f2-fabaa8015d47',
-    #'2022': 'bc2d7c35-de13-45e9-be21-538d9eab3653',
-    #'2021': 'b2b5730d-b816-4c20-a3a3-ab2567f81574',
+    '2022': 'bc2d7c35-de13-45e9-be21-538d9eab3653',
+    '2021': 'b2b5730d-b816-4c20-a3a3-ab2567f81574',
+    # '2020': '44607195-a2ad-4f9b-b6f1-d26c003d85a2',
 }
 
 url = '''https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
@@ -121,11 +122,41 @@ def update_map(date):
 
 def bar_chart_day(miv_data):
     fig = px.bar(miv_data.groupby(['MessungDatZeit'])['AnzFahrzeuge'].sum(),
+            title='Tagestrend',
             labels={
                 'MessungDatZeit': 'Stunde',
                 'value': 'Summe der Fahrzeuge',
             })
     fig.update_layout(width=plot_width)
+    return fig
+
+
+def plot_longterm():
+    url_year = """https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
+    SELECT 
+        DATE_TRUNC('MONTH', "MessungDatZeit"::TIMESTAMP) AS Zeit,
+        SUM("AnzFahrzeuge"::INT) AS "AnzFahrzeuge"
+        FROM "{resource}" 
+    WHERE "AnzFahrzeuge" IS NOT NULL 
+    GROUP BY 1
+    """
+    
+    df_years = pd.DataFrame() # columns=['zeit', 'AnzFahrzeuge'])
+    for resource in resources:
+        #resource = '2023'
+        try:
+            error_status, df_year = download_data(url_year.format(resource=resources[resource]))
+            df_year = extract_data(df_year)
+            df_years = pd.concat([df_years, df_year], ignore_index=True,)
+        except:
+            continue
+    
+    df_years['zeit'] = pd.to_datetime(df_years['zeit'])
+    
+    fig = px.area(df_years.sort_values(by='zeit'), x='zeit', y='AnzFahrzeuge',
+                  title='Langzeittrend (Fahrzeuge je Monat)')
+    fig.update_layout(width=plot_width)
+    
     return fig
 
 
@@ -153,6 +184,7 @@ chosen_date = st.date_input('Wähle Tag:',
 map_fig, miv_data = update_map(chosen_date)
 st.plotly_chart(map_fig)
 st.plotly_chart(bar_chart_day(miv_data))
+st.plotly_chart(plot_longterm())
 
 st.markdown('''Erstellt durch: Alexander Güntert 
             ([Mastodon](https://mastodon.social/@gntert), [Twitter](https://twitter.com/TrickTheTurner))  
