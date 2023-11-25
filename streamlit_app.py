@@ -134,7 +134,7 @@ def bar_chart_day(miv_data):
 def plot_longterm():
     url_year = """https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
     SELECT 
-        DATE_TRUNC('MONTH', "MessungDatZeit"::TIMESTAMP) AS Zeit,
+        DATE_TRUNC('MONTH', "MessungDatZeit"::TIMESTAMP) AS monat,
         SUM("AnzFahrzeuge"::INT) AS "AnzFahrzeuge"
         FROM "{resource}" 
     WHERE "AnzFahrzeuge" IS NOT NULL 
@@ -151,9 +151,9 @@ def plot_longterm():
         except:
             continue
     
-    df_years['zeit'] = pd.to_datetime(df_years['zeit'])
+    df_years['monat'] = pd.to_datetime(df_years['monat'])
     
-    fig = px.area(df_years.sort_values(by='zeit'), x='zeit', y='AnzFahrzeuge',
+    fig = px.area(df_years.sort_values(by='monat'), x='monat', y='AnzFahrzeuge',
                   title='Langzeittrend (Fahrzeuge je Monat)')
     fig.update_layout(width=plot_width)
     
