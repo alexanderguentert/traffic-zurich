@@ -2,6 +2,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import requests
+from io import StringIO
 
 from datetime import datetime
 
@@ -42,17 +43,18 @@ WHERE "AnzFahrzeuge" IS NOT NULL
 ORDER BY 1 DESC'''
 
 
+
 # functions
 def download_data(url):
     r = requests.get(url)
-    df = pd.read_json(r.text,)
-    if df['success'].unique() == True:
+    df = pd.read_json(StringIO(r.text),)
+    if df['success'].unique():
         error_status = False
-        return (error_status, df)
+        return error_status, df
     else:
         error_status = True
         print(url)
-        return (error_status, df['error'])
+        return error_status, df['error']
 
 
 def extract_data(df):
@@ -111,12 +113,12 @@ def update_map(date):
     miv_data = data_preparation(miv_data)
 
     fig = px.scatter_mapbox(miv_data, lat="lat", lon="lon", size="AnzFahrzeuge",
-                        animation_frame='Uhrzeit',
-                        hover_data=['AnzFahrzeuge', 'ZSName', 'Richtung', 'Zeit'],
-                        title='Verkehrsaufkommen am {}'.format(date),
-                        color_continuous_scale=px.colors.diverging.Tealrose, #px.colors.sequential.Plasma_r,#px.colors.cyclical.IceFire,
-                        size_max=30,
-                        zoom=11.5
+                            animation_frame='Uhrzeit',
+                            hover_data=['AnzFahrzeuge', 'ZSName', 'Richtung', 'Zeit'],
+                            title='Verkehrsaufkommen am {}'.format(date),
+                            color_continuous_scale=px.colors.diverging.Tealrose, #px.colors.sequential.Plasma_r,#px.colors.cyclical.IceFire,
+                            size_max=30,
+                            zoom=11.5
     )
     fig.update_layout(mapbox_style="carto-positron", height=800, width=plot_width) #"open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
     return fig, miv_data
@@ -124,11 +126,11 @@ def update_map(date):
 
 def bar_chart_day(miv_data):
     fig = px.bar(miv_data.groupby(['MessungDatZeit'])['AnzFahrzeuge'].sum(),
-            title='Tagestrend',
-            labels={
-                'MessungDatZeit': 'Stunde',
-                'value': 'Summe der Fahrzeuge',
-            })
+                    title='Tagestrend',
+                    labels={
+                        'MessungDatZeit': 'Stunde',
+                        'value': 'Summe der Fahrzeuge',
+                    })
     fig.update_layout(width=plot_width)
     return fig
 
@@ -145,7 +147,6 @@ def plot_longterm():
     
     df_years = pd.DataFrame() # columns=['zeit', 'AnzFahrzeuge'])
     for resource in resources:
-        #resource = '2023'
         try:
             error_status, df_year = download_data(url_year.format(resource=resources[resource]))
             df_year = extract_data(df_year)
@@ -178,9 +179,9 @@ Die dargestellten Daten beruhen auf Messwerten zum motorisierten Individualverke
 dates = load_avlailable_dates()
 
 chosen_date = st.date_input('Wähle Tag:', 
-    value=dates['datum'].max(), 
-    min_value=dates['datum'].min(), 
-    max_value=dates['datum'].max())
+                            value=dates['datum'].max(),
+                            min_value=dates['datum'].min(),
+                            max_value=dates['datum'].max())
 
 
 map_fig, miv_data = update_map(chosen_date)
