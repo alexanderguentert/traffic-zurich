@@ -36,9 +36,9 @@ AND "AnzFahrzeuge" IS NOT NULL
 
 url_dates = '''https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
 SELECT 
-    DISTINCT REPLACE("MessungDatZeit",'T',' ')::DATE AS datum
+    DISTINCT "MessungDatZeit"::DATE AS datum
     from "{resource}"
-WHERE "AnzFahrzeuge" IS NOT NULL
+WHERE "AnzFahrzeuge" IS NOT NULL 
 ORDER BY 1 DESC'''
 
 
@@ -51,6 +51,7 @@ def download_data(url):
         return (error_status, df)
     else:
         error_status = True
+        print(url)
         return (error_status, df['error'])
 
 
