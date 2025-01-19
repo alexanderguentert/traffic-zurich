@@ -11,6 +11,7 @@ import wgs84_ch1903
 plot_width = 1200
 
 resources = {
+    '2025': 'd96c83ea-8c65-4b6b-991e-fbfeb31a5959',
     '2024': 'c1855626-88e1-4d48-99c8-00b049aae900',
     '2023': '4492d891-a366-49b9-b0f2-fabaa8015d47',
     '2022': 'bc2d7c35-de13-45e9-be21-538d9eab3653',
