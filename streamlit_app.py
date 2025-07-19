@@ -17,7 +17,7 @@ resources = {
     '2023': '4492d891-a366-49b9-b0f2-fabaa8015d47',
     '2022': 'bc2d7c35-de13-45e9-be21-538d9eab3653',
     '2021': 'b2b5730d-b816-4c20-a3a3-ab2567f81574',
-    # '2020': '44607195-a2ad-4f9b-b6f1-d26c003d85a2',
+    '2020': '44607195-a2ad-4f9b-b6f1-d26c003d85a2',
 }
 
 url = '''https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
@@ -36,13 +36,6 @@ SELECT
 WHERE REPLACE("MessungDatZeit",'T',' ')::DATE = '{date}'
 AND "AnzFahrzeuge" IS NOT NULL
 '''
-
-url_dates = '''https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql=
-SELECT 
-    DISTINCT "MessungDatZeit"::DATE AS datum
-    from "{resource}"
-WHERE "AnzFahrzeuge" IS NOT NULL 
-ORDER BY 1 DESC'''
 
 
 
@@ -89,14 +82,32 @@ def data_preparation(df):
     return df
 
 
-def load_avlailable_dates():
-    # Load available date for datepicker
-    dates = pd.DataFrame()
-    for resource in resources:
-        error_status, df_dates = download_data(url_dates.format(resource=resources[resource]))
-        df_dates = extract_data(df_dates)
-        dates = pd.concat([dates, df_dates])
-    dates['datum'] = pd.to_datetime(dates['datum'])
+def load_available_dates(resources):
+    """
+    Combine the ressources to one query and retrieve dates
+    """
+    ckan_base_url = 'https://data.stadt-zuerich.ch/api/3/action/datastore_search_sql?sql='
+    sql_dummy = """
+    SELECT 
+        MIN("MessungDatZeit"::DATE) AS datum_min,
+        MAX("MessungDatZeit"::DATE) AS datum_max
+        from "{resource}"
+    WHERE "AnzFahrzeuge" IS NOT NULL """
+    # before the first select UNION is not needed
+    add_union = False
+    # make a select for everey resource
+    for year in resources:
+        if add_union:
+            ckan_base_url += "\nUNION ALL"
+        add_union = True
+        ckan_base_url += sql_dummy.format(resource=resources[year])
+    
+    # make request an retrieve data
+    error_status, df_dates = download_data(ckan_base_url)
+    dates = extract_data(df_dates)
+    dates['datum_min'] = pd.to_datetime(dates['datum_min'])
+    dates['datum_max'] = pd.to_datetime(dates['datum_max'])
+
     return dates
 
 
@@ -178,12 +189,12 @@ Wählen Sie einen Tag und sehen Sie, wie sich die Verkehrslage in der Stadt Zür
 
 Die dargestellten Daten beruhen auf Messwerten zum motorisierten Individualverkehr (MIV) der Stad Zürich (mehr Informationen dazu finden Sie [hier](https://data.stadt-zuerich.ch/dataset/sid_dav_verkehrszaehlung_miv_od2031)).""")
 
-dates = load_avlailable_dates()
+dates = load_available_dates(resources)
 
 chosen_date = st.date_input('Wähle Tag:', 
-                            value=dates['datum'].max(),
-                            min_value=dates['datum'].min(),
-                            max_value=dates['datum'].max())
+                            value=dates['datum_max'].max(),
+                            min_value=dates['datum_min'].min(),
+                            max_value=dates['datum_max' ].max())
 
 
 map_fig, miv_data = update_map(chosen_date)
@@ -192,7 +203,7 @@ st.plotly_chart(bar_chart_day(miv_data))
 st.plotly_chart(plot_longterm())
 
 st.markdown('''Erstellt durch: Alexander Güntert 
-            ([Mastodon](https://mastodon.social/@gntert), [Twitter](https://twitter.com/TrickTheTurner))  
+            ([Mastodon](https://mastodon.social/@gntert), [Bluesky](https://bsky.app/profile/gntert.bsky.social), [Twitter](https://twitter.com/TrickTheTurner))  
             Rohdaten- und Bildquelle: https://data.stadt-zuerich.ch/dataset/sid_dav_verkehrszaehlung_miv_od2031  
             Quellcode: https://github.com/alexanderguentert/traffic-zurich''')
 
