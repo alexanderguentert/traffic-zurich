@@ -7,4 +7,4 @@ You can view the finished app here: https://traffic-zurich.streamlit.app/
 
 For local testing:
 
-`python -m streamlit run streamlit_app.py`
+`uv run streamlit run streamlit_app.py`

@@ -54,8 +54,8 @@ def download_data(url):
 
 def extract_data(df):
     # extract relevant data
-    df2 = df.loc['records', 'result']
-    df3 = pd.DataFrame.from_dict(df2)
+    records = df.loc['records', 'result']
+    df3 = pd.DataFrame(records)
     return df3
 
 
@@ -125,15 +125,20 @@ def update_map(date):
 
     miv_data = data_preparation(miv_data)
 
-    fig = px.scatter_mapbox(miv_data, lat="lat", lon="lon", size="AnzFahrzeuge",
+    fig = px.scatter_map(miv_data, lat="lat", lon="lon", size="AnzFahrzeuge",
                             animation_frame='Uhrzeit',
                             hover_data=['AnzFahrzeuge', 'ZSName', 'Richtung', 'Zeit'],
                             title='Verkehrsaufkommen am {}'.format(date),
                             color_continuous_scale=px.colors.diverging.Tealrose, #px.colors.sequential.Plasma_r,#px.colors.cyclical.IceFire,
                             size_max=30,
-                            zoom=11.5
     )
-    fig.update_layout(mapbox_style="carto-positron", height=800, width=plot_width) #"open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
+    fig.update_layout(map_style="carto-positron", height=800, width=plot_width,
+                      map=dict(bounds=dict(
+                          south=miv_data['lat'].min(),
+                          west=miv_data['lon'].min(),
+                          north=miv_data['lat'].max(),
+                          east=miv_data['lon'].max(),
+                      ))) #"open-street-map", "carto-positron", "carto-darkmatter", "stamen-terrain", "stamen-toner" or "stamen-watercolor"
     return fig, miv_data
 
 
